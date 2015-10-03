@@ -1,19 +1,16 @@
-#! /usr/bin/env python2
 from datetime import datetime
 import subprocess
 import sys
 
-import at
+from . import *
 
 if sys.platform.startswith('win'):
 	GREP='GREP.EXE'
 else:
 	GREP='grep'
 
-#def atgrep(*args, now=datetime.now(), jobs=at.jobs, quiet=False):
 def atgrep(*args):
 	now=datetime.now()
-	jobs=at.jobs
 	quiet=False
 	label_format="{jid}\t{timestamp:<8} {queue:>2} {owner}"
 	#output=io.StringIO()
@@ -37,8 +34,4 @@ def atgrep(*args):
 		if out:
 			r.extend(out.decode('UTF-8').splitlines())
 	return r
-		
-if __name__ == '__main__':
-	import sys
-	for line in atgrep(*sys.argv[1:]):
-		print(line)
+

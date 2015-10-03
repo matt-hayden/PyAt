@@ -1,4 +1,3 @@
-#! /usr/bin/env python2
 from collections import namedtuple
 import string
 import subprocess
@@ -32,7 +31,6 @@ class Job(namedtuple('Job', 'jid started queue owner')):
 				started = dateutil.parser.parse(started)
 			except:
 				started = started
-			#queue = QUEUES.index(line[25])
 			queue = QUEUES[line[25]]
 			owner = line[27:].strip()
 			return Job(jid, started, queue, owner)
@@ -64,5 +62,4 @@ def key(job):
 	return job.started, job.queue
 jobs = sorted(_get_jobs(), key=key)
 #
-if __name__ == '__main__':
-	print_jobs()
+__all__ = 'jobs print_jobs'.split()
