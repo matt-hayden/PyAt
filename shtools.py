@@ -3,11 +3,11 @@ from contextlib import redirect_stdout
 from datetime import datetime, date, time
 #import io
 import re
-import shlex
 import subprocess
 
 from . import *
 from . import Job
+from .cli import sq
 
 def submit(syntax,
 		   queue=None,
@@ -18,7 +18,7 @@ digestion.
 Should you need to dispatch multi-line syntax, you're better off joining it
 yourself into one string"""
 	if isinstance(syntax, (tuple, list)):
-		syntax=' '.join(shlex.quote(str(t)) for t in syntax)
+		syntax=sq(syntax)
 	def _parse(lines, job_pattern=re.compile('\s*'.join(['job', '(\d+)', 'at', '(.*)']), re.IGNORECASE) ):
 		for line in lines:
 			if line.upper().startswith('WARNING:'):
