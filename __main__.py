@@ -1,7 +1,8 @@
-"""Simple Pythonic wrapper around the at and batch commands
+"""Simple Pythonic wrapper for at and batch.
 Usage:
-  py atgrep GREP_ARGS
-  py atq
+  asdf atgrep GREP_ARGS
+  asdf atq
+  asdf batch
 
 """
 
@@ -10,11 +11,12 @@ import sys
 import docopt
 
 from . import *
-from .tools import atgrep
 
-print(sys.argv)
-kwargs = docopt.docopt(__doc__, '0.2')
+kwargs = docopt.docopt(__doc__)
 if kwargs['atgrep']:
-	atgrep(kwargs.pop('GREP_ARGS'))
+	for line in atgrep(kwargs.pop('GREP_ARGS')):
+		print(line)
 elif kwargs['atq']:
 	print_jobs()
+elif kwargs['batch']:
+	batch()
