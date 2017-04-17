@@ -4,15 +4,15 @@ import sys
 
 from . import *
 
+
 if sys.platform.startswith('win'):
 	GREP='GREP.EXE'
 else:
 	GREP='grep'
 
-def atgrep(*args):
+
+def atgrep(*args, quiet=False, label_format="{jid}\t{timestamp:<8} {queue:>2} {owner}"):
 	now=datetime.now()
-	quiet=False
-	label_format="{jid}\t{timestamp:<8} {queue:>2} {owner}"
 	#output=io.StringIO()
 	#
 	r = []

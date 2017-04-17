@@ -5,9 +5,10 @@ from datetime import datetime, date, time
 import re
 import subprocess
 
-from . import *
-from . import Job
-from .cli import sq
+
+from . import AT, BATCH
+from .jobs import Job, QUEUES
+
 
 def submit(syntax,
 		   queue=None,
@@ -19,7 +20,7 @@ Should you need to dispatch multi-line syntax, you're better off joining it
 yourself into one string"""
 	if isinstance(syntax, (tuple, list)):
 		syntax=sq(syntax)
-	def _parse(lines, job_pattern=re.compile('\s*'.join(['job', '(\d+)', 'at', '(.*)']), re.IGNORECASE) ):
+	def _parse_output(lines, job_pattern=re.compile('\s*'.join(['job', '(\d+)', 'at', '(.*)']), re.IGNORECASE) ):
 		for line in lines:
 			if line.upper().startswith('WARNING:'):
 				warning(line[9:].strip())
@@ -48,7 +49,7 @@ yourself into one string"""
 	debug(command)
 	proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 	_, out = proc.communicate(syntax.encode(encoding)) # all output is mushed through stderr :/
-	return _parse(out.decode(encoding).splitlines())
+	return _parse_output(out.decode(encoding).splitlines())
 
 def batch(quiet=False):
 	import os
