@@ -1,25 +1,26 @@
 
 from contextlib import redirect_stdout
-from datetime import datetime, date, time
-#import io
+from datetime import datetime
+import os
 import re
+import selectors
 import subprocess
+import sys
 
 
+from . import debug, info, warning, error, fatal
 from . import AT, BATCH
-from .jobs import Job, QUEUES
+from .jobs import Job, get_queue
+from .tools import search
 
 
 def submit(syntax,
 		   queue=None,
 		   begins=None,
-		   encoding='UTF-8'): # , s=io.StringIO()):
-	"""If syntax is a list of tokens, they're safely quoted for shell
-digestion.
-Should you need to dispatch multi-line syntax, you're better off joining it
-yourself into one string"""
-	if isinstance(syntax, (tuple, list)):
-		syntax=sq(syntax)
+		   at_encoding='UTF-8'):
+	"""
+	syntax is a list of lines
+	"""
 	def _parse_output(lines, job_pattern=re.compile('\s*'.join(['job', '(\d+)', 'at', '(.*)']), re.IGNORECASE) ):
 		for line in lines:
 			if line.upper().startswith('WARNING:'):
@@ -29,8 +30,7 @@ yourself into one string"""
 			if m:
 				g = m.groups()
 				return Job(int(g[0]), g[1].strip(), queue or 0, None)
-	if isinstance(queue, int):
-		queue = QUEUES[queue]
+	queue = get_queue(queue)
 	if queue:
 		command = [ AT, '-q', queue ]
 		if isinstance(begins, (date, datetime)) and (datetime.now() < begins):
@@ -39,21 +39,19 @@ yourself into one string"""
 			command += [ 'now' ]
 	else:
 		command = [ BATCH ]
-	## Python 3.5
-	#sp = s.tell()
-	#with redirect_stderr(s) as out:
-	#	proc = subprocess.Popen(command, stdin=subprocess.PIPE)
-	#	proc.communicate(syntax.encode(encoding))
-	#se = s.tell()
-	#lines = s.read().splitlines()
 	debug(command)
 	proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-	_, out = proc.communicate(syntax.encode(encoding)) # all output is mushed through stderr :/
-	return _parse_output(out.decode(encoding).splitlines())
+	_, out = proc.communicate(syntax.encode(at_encoding)) # all output is mushed through stderr :/
+	return _parse_output(out.decode().splitlines())
 
-def batch(quiet=False):
-	import os
-	import sys
-	if os.isatty(0) and not quiet:
-		print("Emulating batch")
-	submit(sys.stdin.read())
+
+def atgrep(*args, **kwargs):
+	return '\n'.join(search(grep_args=args or sys.argv[1:], **kwargs))
+
+
+def batch(sel=selectors.DefaultSelector(), timeout=None):
+#	if os.isatty(0):
+#		print("Emulating batch")
+	sel.register(sys.stdin, selectors.EVENT_READ)
+	for key, mask in sel.select(timeout):
+		print( submit(key.fileobj.read()) )

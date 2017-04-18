@@ -3,11 +3,20 @@ import string
 import subprocess
 import sys
 
-from . import AT, BATCH
-from . import debug, info, warning, error, panic
+import dateutil.parser
 
+from . import AT, BATCH
+from . import debug, info, warning, error, fatal
+
+class JobError(Exception):
+	pass
 
 QUEUES = '='+string.ascii_lowercase+string.ascii_uppercase
+def get_queue(arg):
+	if arg in (0, None): return None
+	if isinstance(arg, int): return QUEUES[arg]
+	if (len(arg) != 1): raise JobError("{} invalid queue name".format(arg))
+	return arg
 
 
 def job_key(job):
@@ -15,11 +24,10 @@ def job_key(job):
 
 
 class Job(namedtuple('Job', 'jid begins queue owner')):
-	def get_script(self, command=[AT, '-c'], encoding='UTF-8'):
-		# with redirect_stdout...
+	def get_script(self, command=[AT, '-c']):
 		proc = subprocess.Popen(command+[str(self.jid)], stdout=subprocess.PIPE)
 		out, _ = proc.communicate()
-		return out.decode(encoding).splitlines()
+		return out.decode().splitlines()
 	if sys.platform.startswith('linux'):
 		@staticmethod
 		def from_line(line):
@@ -29,7 +37,7 @@ class Job(namedtuple('Job', 'jid begins queue owner')):
 				begins = dateutil.parser.parse(begins)
 			except:
 				debug("{} left as string".format(begins))
-			queue = QUEUES.index(line[25])
+			queue = get_queue(line[25])
 			owner = line[27:].strip()
 			return Job(int(jid), begins, queue, owner)
 	elif sys.platform.startwith('darwin'):
@@ -42,25 +50,24 @@ class Job(namedtuple('Job', 'jid begins queue owner')):
 				debug("{} left as string".format(begins))
 				begins = line.strip()
 			return Job(int(jid), begins, None, None)
-	def __repr__(self):
-		return "{:8d} {:>24} {:02d} {:<}".format(*self)
 
 
-def _get_jobs(command=[AT, '-l'], encoding='UTF-8'):
+def _get_jobs(command=[AT, '-l']):
 	# with redirect_stdout...
 	proc = subprocess.Popen(command, stdout=subprocess.PIPE)
 	out, _ = proc.communicate()
-	for line in out.decode(encoding).splitlines():
+	for line in out.decode().splitlines():
 		yield Job.from_line(line)
 
 
 def print_jobs(jobs=None):
 	if not jobs:
 		jobs = sorted(_get_jobs(), key=job_key)
+	if not jobs:
+		return
 	#print("{:^8} {:^24} {:^2} {:<}".format(*'jid begins qn owner'.split()) )
 	print('='*8, '='*24, '='*2, '='*8)
 	for job in jobs:
 		print(job)
 
 
-jobs = sorted(_get_jobs(), key=job_key)

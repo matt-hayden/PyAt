@@ -1,8 +1,10 @@
-from datetime import datetime
+
 import subprocess
 import sys
 
-from . import *
+from . import debug, info, warning, error, fatal
+from . import AT, BATCH
+from .jobs import _get_jobs
 
 
 if sys.platform.startswith('win'):
@@ -10,28 +12,14 @@ if sys.platform.startswith('win'):
 else:
 	GREP='grep'
 
-
-def atgrep(*args, quiet=False, label_format="{jid}\t{timestamp:<8} {queue:>2} {owner}"):
-	now=datetime.now()
-	#output=io.StringIO()
-	#
-	r = []
-	for job in jobs:
+def search(grep_args, at_encoding='UTF-8'):
+	for job in _get_jobs():
 		jid, started, queue, owner = job
-		if not quiet:
-			try:
-				timestamp, _ = str(now-started).rsplit('.', 1)
-			except:
-				timestamp = started
-			label = label_format.format(**locals())
-		else:
-			label = str(jid)
-		myargs = list(args)+['--label='+label, '-H']
-		#with redirect_stdout(output) as out: ...
-		grep_proc = subprocess.Popen([GREP]+myargs, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		label = str(jid)
+		proc = subprocess.Popen([GREP, '--label='+label, '-H']+grep_args,
+								stdin=subprocess.PIPE,
+								stdout=subprocess.PIPE)
 		contents = '\n'.join(job.get_script())
-		out, _ = grep_proc.communicate(contents.encode('UTF-8'))
+		out, _ = proc.communicate(contents.encode(at_encoding))
 		if out:
-			r.extend(out.decode('UTF-8').splitlines())
-	return r
-
+			yield from out.decode().splitlines()
