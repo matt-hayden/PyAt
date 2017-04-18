@@ -5,7 +5,6 @@ There is only one useful function: `atgrep`. Use actual grep syntax to search th
 
 Install with `pip`:
 
-`
+```
 pip3 install git+https://github.com/matt-hayden/PyAt
-
-`
+```
